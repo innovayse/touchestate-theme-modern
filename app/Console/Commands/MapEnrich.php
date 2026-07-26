@@ -4,16 +4,23 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Http\Controllers\PropertyController;
+use App\Support\TeCache;
 use Illuminate\Support\Facades\Cache;
 
 class MapEnrich extends Command
 {
-    protected $signature   = 'map:enrich';
+    protected $signature   = 'map:enrich {locale?}';
     protected $description = 'Fetch precise coordinates for all map properties via detail API';
 
     public function handle(PropertyController $controller): int
     {
-        $result = Cache::get('te_map_list');
+        // Coordinates are language-independent, but the source listing (te_map_list)
+        // is cached per locale — read the one the triggering request populated.
+        $locale = in_array($this->argument('locale'), ['en', 'ru', 'hy'], true)
+            ? $this->argument('locale')
+            : config('app.locale');
+
+        $result = Cache::get(TeCache::key('te_map_list', $locale));
         if (!$result) {
             $this->error('te_map_list cache is empty — visit /map/data first');
             return 1;

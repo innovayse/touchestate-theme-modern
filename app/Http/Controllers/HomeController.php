@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Support\TeCache;
 use TouchEstate\Sdk\TouchEstateClient;
 use Illuminate\Support\Facades\Cache;
 
@@ -43,9 +44,10 @@ class HomeController extends Controller
 
     public function data()
     {
+        $locale = app()->getLocale();
         $allItems = [];
         try {
-            $allItems = Cache::remember('te_home_100', 3600, function () {
+            $allItems = Cache::remember(TeCache::key('te_home_100', $locale), 3600, function () {
                 return $this->client->properties()->list([
                     'pageSize'  => 100,
                     'sortBy'    => 'viewCount',
@@ -80,8 +82,6 @@ class HomeController extends Controller
             array_map(fn ($p) => $p['propertyType'] ?? '', $allItems)
         )));
         sort($availableTypes);
-
-        $locale = app()->getLocale();
 
         $popularHtml = view('partials.home-popular', compact(
             'rentProperties', 'saleProperties', 'locale'

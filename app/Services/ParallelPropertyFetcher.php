@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\TeCache;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise\Utils;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use TouchEstate\Sdk\Signer\SignatureV4Signer;
 
@@ -60,7 +62,7 @@ class ParallelPropertyFetcher
         $toFetch = [];
 
         foreach ($slugs as $slug) {
-            $hit = Cache::get('te_prop:' . $slug);
+            $hit = Cache::get(TeCache::prop($slug));
             if ($hit !== null) {
                 $cached[$slug] = $hit;
             } else {
@@ -97,7 +99,7 @@ class ParallelPropertyFetcher
                         continue;
                     }
                     $data['slug'] = $slug;
-                    Cache::put('te_prop:' . $slug, $data, $cacheTtl);
+                    Cache::put(TeCache::prop($slug), $data, $cacheTtl);
                     $cached[$slug] = $data;
                 } catch (\Throwable) {
                     // malformed JSON or unexpected structure — skip silently
@@ -143,6 +145,9 @@ class ParallelPropertyFetcher
             'TE-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%s',
             $this->publicKey, $credentialScope, $signedHeaders, $signature,
         );
+
+        // Content language (CRM-441) — not part of SignedHeaders, added after signing.
+        $headers['x-language'] = App::getLocale();
 
         return $this->guzzle->getAsync($this->baseUrl . $path, ['headers' => $headers]);
     }
