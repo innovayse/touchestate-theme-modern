@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\CbaRatesService;
+use App\Support\TeCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use TouchEstate\Sdk\Signer\SignatureV4Signer;
@@ -211,7 +212,7 @@ class PropertyController extends Controller
 
     private function crossCurrencySearch(array $baseFilters, array $queries): array
     {
-        $cacheKey = 'te_xfx:' . md5(serialize($queries) . serialize($baseFilters));
+        $cacheKey = TeCache::key('te_xfx:' . md5(serialize($queries) . serialize($baseFilters)));
         return Cache::remember($cacheKey, 900, function () use ($baseFilters, $queries) {
             $seen    = [];
             $results = ['items' => [], 'totalCount' => 0, 'hasNextPage' => false];
@@ -291,7 +292,7 @@ class PropertyController extends Controller
             }
         } else {
             try {
-                $properties = Cache::remember('te_list:' . md5(serialize($filters)), 3600, function () use ($filters) {
+                $properties = Cache::remember(TeCache::key('te_list:' . md5(serialize($filters))), 3600, function () use ($filters) {
                     return $this->client->properties()->list($filters);
                 });
             } catch (\Exception $e) {
@@ -313,7 +314,7 @@ class PropertyController extends Controller
     {
         $locale = app()->getLocale();
         try {
-            $result   = Cache::remember('te_map_list', 1800, fn () => $this->client->properties()->list([
+            $result   = Cache::remember(TeCache::key('te_map_list', $locale), 1800, fn () => $this->client->properties()->list([
                 'pageNumber' => 1,
                 'pageSize'   => 100,
                 'status'     => 'Active',
@@ -372,17 +373,18 @@ class PropertyController extends Controller
 
             if ($needEnrich && !Cache::has('map_enrich_running')) {
                 Cache::put('map_enrich_running', true, now()->addMinutes(10));
-                exec(PHP_BINARY . ' ' . escapeshellarg($artisan) . ' map:enrich > /dev/null 2>&1 &');
+                exec(PHP_BINARY . ' ' . escapeshellarg($artisan) . ' map:enrich ' . escapeshellarg($locale) . ' > /dev/null 2>&1 &');
             }
 
-            // Pre-warm property page caches so clicks open instantly
+            // Pre-warm property page caches so clicks open instantly (per-locale — the
+            // detail payload is localized, so each language keeps its own te_prop cache)
             if (!Cache::has('map_prewarm_running')) {
                 $uncachedProps = collect($allItems)->filter(
-                    fn($i) => !empty($i['slug']) && !Cache::has('te_prop:' . $i['slug'])
+                    fn($i) => !empty($i['slug']) && !Cache::has(TeCache::prop($i['slug'], $locale))
                 )->count();
                 if ($uncachedProps > 0) {
                     Cache::put('map_prewarm_running', true, now()->addMinutes(15));
-                    exec(PHP_BINARY . ' ' . escapeshellarg($artisan) . ' map:prewarm > /dev/null 2>&1 &');
+                    exec(PHP_BINARY . ' ' . escapeshellarg($artisan) . ' map:prewarm ' . escapeshellarg($locale) . ' > /dev/null 2>&1 &');
                 }
             }
 
@@ -588,7 +590,7 @@ class PropertyController extends Controller
     public function extras(string $slug)
     {
         try {
-            $property = Cache::remember('te_prop:' . $slug, 3600, function () use ($slug) {
+            $property = Cache::remember(TeCache::prop($slug), 3600, function () use ($slug) {
                 $property = $this->client->properties()->retrieve($slug);
                 $property['slug'] = $slug;
                 $property['fullAddress'] = $this->buildPropertyAddress($property) ?: null;
@@ -601,7 +603,7 @@ class PropertyController extends Controller
         // Similar = our own Active listings (cached globally 1h — identical for every page),
         // scored/filtered per-property in PHP.
         try {
-            $items = Cache::remember('te_all_50', 3600, function () {
+            $items = Cache::remember(TeCache::key('te_all_50'), 3600, function () {
                 return $this->client->properties()->list(['pageSize' => 50])['items'] ?? [];
             });
             $sorted = collect($items)
@@ -645,7 +647,7 @@ class PropertyController extends Controller
     public function content(string $slug)
     {
         try {
-            $property = Cache::remember('te_prop:' . $slug, 3600, function () use ($slug) {
+            $property = Cache::remember(TeCache::prop($slug), 3600, function () use ($slug) {
                 $property = $this->client->properties()->retrieve($slug);
                 $property['slug'] = $slug;
                 $property['fullAddress'] = $this->buildPropertyAddress($property) ?: null;
