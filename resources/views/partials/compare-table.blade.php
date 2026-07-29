@@ -36,6 +36,8 @@
             'constructionType' => (($t = __('compare.construction_' . strtolower($val))) === 'compare.construction_' . strtolower($val)) ? $val : $t,
             'furnitureType' => (($t = __('compare.furniture_' . strtolower($val))) === 'compare.furniture_' . strtolower($val)) ? $val : $t,
             'status' => (($t = __('property.status_' . strtolower($val))) === 'property.status_' . strtolower($val)) ? $val : $t,
+            'city' => localized_city($val),
+            'fullAddress' => localized_address($p),
             default => $val,
         };
     };
