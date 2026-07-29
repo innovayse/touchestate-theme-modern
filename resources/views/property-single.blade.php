@@ -78,7 +78,7 @@
         $k = 'property-single.furniture_' . $furnitureNorm; $lbl = __($k);
         $specs[__('property.furniture')] = ($lbl === $k ? $property['furnitureType'] : $lbl);
     }
-    if (!empty($property['city']))            { $specs[__('property.city')]           = $property['city']; }
+    if (!empty($property['city']))            { $specs[__('property.city')]           = localized_city($property['city']); }
     if (!empty($property['district']))        { $specs[__('property.district')]       = $property['district']; }
 
     // Extra specs from API
@@ -248,7 +248,7 @@
                     <div class="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-5 py-3">
                         <div class="min-w-0">
                             <p class="truncate text-sm font-semibold text-white/90">{{ $property['title'] ?? '' }}</p>
-                            <p class="text-xs text-white/40">{{ $property['fullAddress'] ?? $property['city'] ?? '' }}</p>
+                            <p class="text-xs text-white/40">{{ localized_address($property) ?: ($property['city'] ?? '') }}</p>
                         </div>
                         <div class="flex shrink-0 items-center gap-3">
                             {{-- Counter --}}
@@ -311,7 +311,7 @@
                             @if(!empty($property['fullAddress']) || !empty($property['city']))
                                 <p class="mt-2 flex items-center gap-1.5 text-sm text-neutral-500">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                                    {{ $property['fullAddress'] ?? $property['city'] ?? '' }}
+                                    {{ localized_address($property) ?: ($property['city'] ?? '') }}
                                 </p>
                             @endif
                         </div>
@@ -629,13 +629,13 @@
                                 @if(!empty($property['country']))
                                 <div class="flex items-center justify-between py-2">
                                     <span class="text-sm text-neutral-500">{{ __('property-single.country') }}</span>
-                                    <span class="text-sm font-medium text-ink text-right">{{ $property['country'] }}</span>
+                                    <span class="text-sm font-medium text-ink text-right">{{ localized_country($property['country']) }}</span>
                                 </div>
                                 @endif
                                 @if(!empty($property['city']))
                                 <div class="flex items-center justify-between py-2">
                                     <span class="text-sm text-neutral-500">{{ __('property-single.city') }}</span>
-                                    <span class="text-sm font-medium text-ink text-right">{{ $property['city'] }}</span>
+                                    <span class="text-sm font-medium text-ink text-right">{{ localized_city($property['city']) }}</span>
                                 </div>
                                 @endif
                                 @if(!empty($property['district']))
@@ -650,7 +650,7 @@
                                     <span class="text-sm font-medium text-ink text-right">{{ $property['street'] }}</span>
                                 </div>
                                 @endif
-                                @if(!empty($property['buildingNumber']))
+                                @if(!empty($property['buildingNumber']) && $property['buildingNumber'] !== '—' && $property['buildingNumber'] !== '-')
                                 <div class="flex items-center justify-between py-2">
                                     <span class="text-sm text-neutral-500">{{ __('property-single.building_number') }}</span>
                                     <span class="text-sm font-medium text-ink text-right">{{ $property['buildingNumber'] }}</span>
@@ -783,8 +783,8 @@ fetch('{{ $extrasUrl }}')
             ? $bT($property['street']) . ' ' . $bT($property['buildingNumber'])
             : (!empty($property['street']) ? $bT($property['street']) : null),
         !empty($property['district']) ? $bT($property['district']) : null,
-        !empty($property['city'])     ? $bT($property['city'])     : null,
-        !empty($property['country'])  ? $bT($property['country'])  : null,
+        !empty($property['city'])     ? $bT(localized_city($property['city']))     : null,
+        !empty($property['country'])  ? $bT(localized_country($property['country']))  : null,
     ]);
     if ($addrParts) {
         $bLines[] = '<span style="color:#666;font-size:12px">' . implode(', ', $addrParts) . '</span>';

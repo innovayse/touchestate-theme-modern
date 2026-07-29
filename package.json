@@ -3,6 +3,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "build:geo": "node scripts/build-geo-translations.cjs AM",
         "dev": "vite"
     },
     "devDependencies": {
@@ -15,6 +16,7 @@
     "dependencies": {
         "@alpinejs/collapse": "^3.15.12",
         "@hotwired/turbo": "^8.0.23",
+        "@innovayse/geo-atlas": "^2.2.0",
         "alpinejs": "^3.15.12"
     }
 }

@@ -24,7 +24,7 @@
 <div x-data="propertyToggle('{{ $slug }}')"
     data-fav-card
     data-title="{{ $prop['title'] ?? '' }}"
-    data-address="{{ $prop['fullAddress'] ?? $prop['city'] ?? '' }}"
+    data-address="{{ localized_address($prop) ?: ($prop['city'] ?? '') }}"
     data-code="{{ $prop['code'] ?? $prop['ref'] ?? $prop['internalCode'] ?? $slug }}"
     class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-sand bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
 
@@ -76,7 +76,7 @@
     {{-- Body --}}
     <a href="{{ url('/' . $locale . '/property/' . $slug) }}" class="flex flex-1 flex-col p-5">
         <h3 class="font-display text-lg font-semibold text-ink line-clamp-1">{{ $prop['title'] ?? $ptLabel }}</h3>
-        <p class="mt-1 text-sm text-neutral-500 line-clamp-1">{{ $prop['fullAddress'] ?? $prop['city'] ?? '' }}</p>
+        <p class="mt-1 text-sm text-neutral-500 line-clamp-1">{{ localized_address($prop) ?: ($prop['city'] ?? '') }}</p>
 
         <div class="mt-4 flex flex-wrap gap-4 text-sm text-neutral-600">
             @if(!empty($prop['bedrooms']))
